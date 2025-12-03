@@ -4,14 +4,12 @@
 class SlideDeck {
   /**
    * Constructor for the SlideDeck object.
-   * @param {Node} container The container element for the slides.
    * @param {NodeList} slides A list of HTML elements containing the slide text.
    * @param {L.map} map The Leaflet map where data will be shown.
    * @param {object} slideOptions The options to create each slide's L.geoJSON
    *                              layer, keyed by slide ID.
    */
-  constructor(container, slides, map, slideOptions = {}) {
-    this.container = container;
+  constructor(slides, map, slideOptions = {}) {
     this.slides = slides;
     this.map = map;
     this.slideOptions = slideOptions;
@@ -60,7 +58,7 @@ class SlideDeck {
    * @return {object} The FeatureCollection as loaded from the data file
    */
   async getSlideFeatureCollection(slide) {
-    const resp = await fetch(`data/${slide.id}.geojson`);
+    const resp = await fetch(`data/${slide.id}.json`);
     const data = await resp.json();
     return data;
   }
@@ -79,13 +77,16 @@ class SlideDeck {
   }
 
   /**
-   * ### syncMapToSlide
+   * ### showSlide
    *
    * Go to the slide that mathces the specified ID.
    *
    * @param {HTMLElement} slide The slide's HTML element
    */
-  async syncMapToSlide(slide) {
+  async showSlide(slide) {
+    this.hideAllSlides(this.slides);
+    slide.classList.remove('hidden');
+
     const collection = await this.getSlideFeatureCollection(slide);
     const options = this.slideOptions[slide.id];
     const layer = this.updateDataLayer(collection, options);
@@ -130,9 +131,9 @@ class SlideDeck {
    * Show the slide with ID matched by currentSlideIndex. If currentSlideIndex is
    * null, then show the first slide.
    */
-  syncMapToCurrentSlide() {
+  showCurrentSlide() {
     const slide = this.slides[this.currentSlideIndex];
-    this.syncMapToSlide(slide);
+    this.showSlide(slide);
   }
 
   /**
@@ -146,7 +147,7 @@ class SlideDeck {
       this.currentSlideIndex = 0;
     }
 
-    this.syncMapToCurrentSlide();
+    this.showCurrentSlide();
   }
 
   /**
@@ -160,7 +161,7 @@ class SlideDeck {
       this.currentSlideIndex = this.slides.length - 1;
     }
 
-    this.syncMapToCurrentSlide();
+    this.showCurrentSlide();
   }
 
   /**
@@ -173,28 +174,6 @@ class SlideDeck {
   preloadFeatureCollections() {
     for (const slide of this.slides) {
       this.getSlideFeatureCollection(slide);
-    }
-  }
-
-  /**
-   * Calculate the current slide index based on the current scroll position.
-   */
-  calcCurrentSlideIndex() {
-    const scrollPos = window.scrollY - this.container.offsetTop;
-    const windowHeight = window.innerHeight;
-
-    let i;
-    for (i = 0; i < this.slides.length; i++) {
-      const slidePos =
-        this.slides[i].offsetTop - scrollPos + windowHeight * 0.7;
-      if (slidePos >= 0) {
-        break;
-      }
-    }
-
-    if (i !== this.currentSlideIndex) {
-      this.currentSlideIndex = i;
-      this.syncMapToCurrentSlide();
     }
   }
 }
